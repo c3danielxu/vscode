@@ -748,6 +748,20 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 			return resource.fsPath;
 		}
 
+		// return resource.path;
+		if (resource.scheme === fileSchemes.vscodeNotebookCell) {
+			// return resource.fsPath;
+			// return '/Users/danielxu/Documents/playgrounds/playground8/test.js';
+			// return '';
+			// console.log(resource.path);
+			return resource.fsPath + '#' + resource.fragment + '.js';
+			// return resource.fsPath + '.js';
+			return path.dirname(resource.fsPath) + path.sep
+				+ '~' + fileSchemes.vscodeNotebookCell + '~' + path.basename(resource.fsPath)
+				+ '?' + encodeURIComponent(resource.authority || emptyAuthority)
+				+ (resource.fragment ? '#' + resource.fragment : '');
+		}
+
 		return (this.isProjectWideIntellisenseOnWebEnabled() ? '' : inMemoryResourcePrefix)
 			+ '/' + resource.scheme
 			+ '/' + (resource.authority || emptyAuthority)
@@ -803,6 +817,17 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 				const resource = vscode.Uri.parse(parts[1] + '://' + (parts[2] === emptyAuthority ? '' : parts[2]) + '/' + parts[3]);
 				return this.bufferSyncSupport.toVsCodeResource(resource);
 			}
+		}
+		if (false && path.basename(filepath).startsWith('~' + fileSchemes.vscodeNotebookCell + '~')) {
+			const dir = path.dirname(filepath);
+			const baseAndAuthorityAndCell = path.basename(filepath).slice(fileSchemes.vscodeNotebookCell.length + 2);
+			const base = baseAndAuthorityAndCell.slice(0, baseAndAuthorityAndCell.lastIndexOf('?'));
+			const fullPath = dir + path.sep + base;
+			const authorityAndCell = baseAndAuthorityAndCell.slice(baseAndAuthorityAndCell.lastIndexOf('?') + 1);
+			const authorityOrEmptyAuthority = decodeURIComponent(authorityAndCell.slice(0, authorityAndCell.lastIndexOf('#')));
+			const fragment = authorityAndCell.slice(authorityAndCell.lastIndexOf('#') + 1);
+			const resource = vscode.Uri.parse(fileSchemes.vscodeNotebookCell + '://' + (authorityOrEmptyAuthority === emptyAuthority ? '' : authorityOrEmptyAuthority + '/') + fullPath + '#' + fragment);
+			return this.bufferSyncSupport.toVsCodeResource(resource);
 		}
 		return this.bufferSyncSupport.toResource(filepath);
 	}
